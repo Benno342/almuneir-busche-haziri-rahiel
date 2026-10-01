@@ -45,7 +45,9 @@ def test_time_slot_duration() -> None:
 
 def test_time_slot_end_must_be_after_start() -> None:
     with pytest.raises(ValueError):
-        TimeSlot(id=None, court_id=1, date=date(2026, 10, 5), start_time=time(18), end_time=time(18))
+        TimeSlot(
+            id=None, court_id=1, date=date(2026, 10, 5), start_time=time(18), end_time=time(17)
+        )
 
 
 @pytest.mark.parametrize(
@@ -66,7 +68,7 @@ def test_booking_is_active(status: BookingStatus, active: bool) -> None:
 def test_payment_deadline_is_twelve_hours_after_creation() -> None:
     created = datetime(2026, 10, 1, 8, tzinfo=UTC)
     booking = make_booking(BookingStatus.PENDING_PAYMENT, created)
-    assert PAYMENT_WINDOW == timedelta(hours=12)
+    assert timedelta(hours=12) == PAYMENT_WINDOW
     assert booking.payment_deadline(make_slot()) == created + timedelta(hours=12)
 
 

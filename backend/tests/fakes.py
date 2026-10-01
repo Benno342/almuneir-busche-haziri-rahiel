@@ -50,6 +50,7 @@ class _HasId(Protocol):
 # In-memory repositories
 # --------------------------------------------------------------------------------------
 
+
 class _InMemoryStore[T: _HasId]:
     """Stores copies so that mutating a returned entity without `update` has no effect,
     exactly like the SQL repositories."""

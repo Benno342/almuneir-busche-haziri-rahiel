@@ -14,6 +14,7 @@ import pytest
 from padel.application.repositories import Repositories
 from padel.domain.entities import BookingStatus, MembershipTier
 from padel.domain.exceptions import SlotUnavailableError
+from padel.infrastructure.db.repositories import sql_repositories
 from tests.builders import (
     DEFAULT_NOW,
     add_booking,
@@ -23,12 +24,20 @@ from tests.builders import (
     add_slot,
     add_waitlist_entry,
 )
+from tests.conftest import open_session
 from tests.fakes import in_memory_repositories
 
 
-@pytest.fixture(params=["memory"])
+@pytest.fixture(
+    params=["memory", "sqlite", pytest.param("postgres", marks=pytest.mark.integration)]
+)
 def repos(request: pytest.FixtureRequest) -> Iterator[Repositories]:
-    yield in_memory_repositories()
+    if request.param == "memory":
+        yield in_memory_repositories()
+        return
+    engine = request.getfixturevalue(f"{request.param}_engine")
+    with open_session(engine) as session:
+        yield sql_repositories(session)
 
 
 def test_member_roundtrip(repos: Repositories) -> None:
@@ -78,7 +87,9 @@ def test_booking_roundtrip_and_update(repos: Repositories) -> None:
     assert repos.bookings.get(booking.id) == booking
 
     confirmed_at = DEFAULT_NOW + timedelta(hours=1)
-    repos.bookings.update(replace(booking, status=BookingStatus.CONFIRMED, confirmed_at=confirmed_at))
+    repos.bookings.update(
+        replace(booking, status=BookingStatus.CONFIRMED, confirmed_at=confirmed_at)
+    )
     loaded = repos.bookings.get(booking.id)
     assert loaded is not None
     assert loaded.status == BookingStatus.CONFIRMED
@@ -99,6 +110,18 @@ def test_second_active_booking_for_slot_is_rejected(repos: Repositories) -> None
     add_booking(repos, slot, add_member(repos, "A"))
     with pytest.raises(SlotUnavailableError):
         add_booking(repos, slot, add_member(repos, "B"), status=BookingStatus.CONFIRMED)
+    # only the failed write is rolled back, the unit of work stays usable
+    assert repos.bookings.get_active_for_slot(slot.id or 0) is not None
+    add_member(repos, "C")
+
+
+def test_reactivating_a_booking_on_a_taken_slot_is_rejected(repos: Repositories) -> None:
+    slot = add_slot(repos)
+    member = add_member(repos)
+    cancelled = add_booking(repos, slot, member, status=BookingStatus.CANCELLED)
+    add_booking(repos, slot, member)
+    with pytest.raises(SlotUnavailableError):
+        repos.bookings.update(replace(cancelled, status=BookingStatus.CONFIRMED))
 
 
 def test_inactive_bookings_do_not_block_the_slot(repos: Repositories) -> None:
