@@ -1,0 +1,35 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #1d2a24;
+  background: #f6f8f5;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+nav button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #2f7a55;
+  border-radius: 999px;
+  background: white;
+  color: #2f7a55;
+  cursor: pointer;
+}
+
+nav button[aria-current='page'] {
+  background: #2f7a55;
+  color: white;
+}
