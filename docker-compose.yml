@@ -1,0 +1,23 @@
+# Local development database. Usage: docker compose up -d
+#   dev DB:   postgresql://padel:padel@localhost:5432/padel        (DATABASE_URL)
+#   test DB:  postgresql://padel:padel@localhost:5432/padel_test   (TEST_DATABASE_URL)
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: padel
+      POSTGRES_PASSWORD: padel
+      POSTGRES_DB: padel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U padel -d padel"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  pgdata:
