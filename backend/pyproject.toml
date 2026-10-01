@@ -54,3 +54,7 @@ strict = true
 packages = ["padel"]
 exclude = ["padel/infrastructure/db/migrations/"]
 plugins = ["pydantic.mypy"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
